@@ -1,0 +1,131 @@
+{
+  "schema": "ilf.features.v1",
+  "features": [
+    {
+      "id": "AC1",
+      "kind": "poc",
+      "text": "Workspace builds and unit tests pass headless.",
+      "passes": true
+    },
+    {
+      "id": "AC2",
+      "kind": "poc",
+      "text": "Twin rejects calls without PAT (401), without api-version (400), unknown PR (404); paginates with $top/$skip; returns 429 + Retry-After past its budget.",
+      "passes": true
+    },
+    {
+      "id": "AC3",
+      "kind": "poc",
+      "text": "Stack retarget+rebase: parent PR completed in twin \u2192 within one tick child PR targetRefName equals parent's target and its git branch contains no parent commits twice (linear, tip rebased onto new target); chain of 3 resolves across ticks.",
+      "passes": true
+    },
+    {
+      "id": "AC4",
+      "kind": "poc",
+      "text": "Rebase conflict: child left untouched (no force-push), status adoq/stack=failed with message, event logged, other PRs continue.",
+      "passes": true
+    },
+    {
+      "id": "AC5",
+      "kind": "poc",
+      "text": "With twin retargeting=off, bot detects the PATCH did not change targetRefName, posts failed status, does not rebase.",
+      "passes": true
+    },
+    {
+      "id": "AC6",
+      "kind": "poc",
+      "text": "Serial queue: 3 queued PRs complete in FIFO order, each only after its queue build succeeded; target tip history shows that order.",
+      "passes": true
+    },
+    {
+      "id": "AC7",
+      "kind": "poc",
+      "text": "Batching: 4 green PRs complete with \u2264 2 builds total; with 1 red PR in a batch of 4, culprit evicted with failed status, other 3 complete, builds \u2264 5.",
+      "passes": true
+    },
+    {
+      "id": "AC8",
+      "kind": "poc",
+      "text": "Idempotence and restart: killing and restarting adoq mid-batch (SQLite state kept) never double-completes or double-pushes; second tick on unchanged state makes zero mutating API calls.",
+      "passes": true
+    },
+    {
+      "id": "AC9",
+      "kind": "poc",
+      "text": "Reflex CLI: `adoq ls` prints JSON of stacks/queue/batches; `adoq do Enqueue '{\"pr\":N}'` drives the core; invalid action exits non-zero listing available actions; behaviour tests use only the CLI + twin fixtures.",
+      "passes": true
+    },
+    {
+      "id": "AC10",
+      "kind": "poc",
+      "text": "Safety: PAT never appears in logs/telemetry/db; twin binds 127.0.0.1 only; a guard fails tests making non-loopback connections.",
+      "passes": true
+    },
+    {
+      "id": "AC11",
+      "kind": "poc",
+      "text": "Telemetry: each scenario run appends valid JSON lines tick/retarget/rebase/batch/merge to $DATA_DIR/telemetry.jsonl with documented fields and no personal data.",
+      "passes": true
+    },
+    {
+      "id": "AC12",
+      "kind": "poc",
+      "text": "Bench command's last stdout line is JSON with tick_p50_ms, rss_mb, builds_per_merged_pr; builds_per_merged_pr \u2264 0.3 on the 4-green-PR batch.",
+      "passes": true
+    },
+    {
+      "id": "AC13",
+      "kind": "poc",
+      "text": "Repo holds twins/ado/ README naming the Microsoft Learn pages followed and a LICENSE (MIT).",
+      "passes": true
+    },
+    {
+      "id": "OSS",
+      "kind": "roadmap",
+      "text": "Open-source release: README for outside developers (copy-lint clean), MIT LICENSE, scripts/check-publishable.sh passes; tests in crates/adoq/tests/publish.rs.",
+      "passes": true
+    },
+    {
+      "id": "F1",
+      "kind": "roadmap",
+      "text": "Read wshm's ADO queue and Pro-Sharp code; decide contribute vs build",
+      "passes": false
+    },
+    {
+      "id": "F2",
+      "kind": "roadmap",
+      "text": "Real ADO adapter against a personal ADO org",
+      "passes": false
+    },
+    {
+      "id": "F3",
+      "kind": "roadmap",
+      "text": "Speculative builds on queue refs via ADO pipelines API",
+      "passes": false
+    },
+    {
+      "id": "F4",
+      "kind": "roadmap",
+      "text": "Service hooks (webhook) receiver with polling fallback",
+      "passes": false
+    },
+    {
+      "id": "F5",
+      "kind": "roadmap",
+      "text": "Packaging: Docker-free static binary release, config docs, MIT repo, README demo",
+      "passes": false
+    },
+    {
+      "id": "F6",
+      "kind": "roadmap",
+      "text": "Policy-aware mode: required-status check setup, bypass detection, reviewer-vote reset warnings",
+      "passes": false
+    },
+    {
+      "id": "F7",
+      "kind": "roadmap",
+      "text": "Queue priority, per-PR batch opt-out, and pause/resume",
+      "passes": false
+    }
+  ]
+}

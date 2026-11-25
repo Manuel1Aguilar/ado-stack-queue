@@ -1,0 +1,181 @@
+{
+ "schema": "ilf.spec.v1",
+ "scope": "adoq POC: Rust service+CLI that auto-retargets/rebases stacked ADO PRs and runs a batched merge queue, proven end-to-end against a local ADO REST digital twin and real bare git repos.",
+ "user_stories": [
+  {
+   "id": "US1",
+   "text": "As a developer I branch off a teammate's unmerged branch, open my PR, and when the parent merges my PR retargets and rebases itself."
+  },
+  {
+   "id": "US2",
+   "text": "As a maintainer I tag PRs for the queue and they merge in order only after a green build on the merged result."
+  },
+  {
+   "id": "US3",
+   "text": "As a maintainer I want green PRs batched so pipelines run as few times as possible, with a failing PR isolated automatically."
+  },
+  {
+   "id": "US4",
+   "text": "As an agent/operator I can inspect and drive the engine with `adoq ls` / `adoq do` without a UI."
+  }
+ ],
+ "non_goals": [
+  "Real ADO org calls or credentials",
+  "Webhooks (polling only)",
+  "Web UI",
+  "Policy/permission emulation in the twin",
+  "Multi-repo, multi-tenant hosting",
+  "Marketplace extension packaging"
+ ],
+ "acceptance_criteria": [
+  {
+   "id": "AC1",
+   "text": "Workspace builds and unit tests pass headless.",
+   "verify": "cargo test --workspace --locked"
+  },
+  {
+   "id": "AC2",
+   "text": "Twin rejects calls without PAT (401), without api-version (400), unknown PR (404); paginates with $top/$skip; returns 429 + Retry-After past its budget.",
+   "verify": "cargo test -p twin-ado --test fidelity"
+  },
+  {
+   "id": "AC3",
+   "text": "Stack retarget+rebase: parent PR completed in twin \u2192 within one tick child PR targetRefName equals parent's target and its git branch contains no parent commits twice (linear, tip rebased onto new target); chain of 3 resolves across ticks.",
+   "verify": "cargo test -p adoq --test stacking"
+  },
+  {
+   "id": "AC4",
+   "text": "Rebase conflict: child left untouched (no force-push), status adoq/stack=failed with message, event logged, other PRs continue.",
+   "verify": "cargo test -p adoq --test stacking conflict"
+  },
+  {
+   "id": "AC5",
+   "text": "With twin retargeting=off, bot detects the PATCH did not change targetRefName, posts failed status, does not rebase.",
+   "verify": "cargo test -p adoq --test stacking retarget_off"
+  },
+  {
+   "id": "AC6",
+   "text": "Serial queue: 3 queued PRs complete in FIFO order, each only after its queue build succeeded; target tip history shows that order.",
+   "verify": "cargo test -p adoq --test queue serial"
+  },
+  {
+   "id": "AC7",
+   "text": "Batching: 4 green PRs complete with \u2264 2 builds total; with 1 red PR in a batch of 4, culprit evicted with failed status, other 3 complete, builds \u2264 5.",
+   "verify": "cargo test -p adoq --test queue batch_bisect"
+  },
+  {
+   "id": "AC8",
+   "text": "Idempotence and restart: killing and restarting adoq mid-batch (SQLite state kept) never double-completes or double-pushes; second tick on unchanged state makes zero mutating API calls.",
+   "verify": "cargo test -p adoq --test recovery"
+  },
+  {
+   "id": "AC9",
+   "text": "Reflex CLI: `adoq ls` prints JSON of stacks/queue/batches; `adoq do Enqueue '{\"pr\":N}'` drives the core; invalid action exits non-zero listing available actions; behaviour tests use only the CLI + twin fixtures.",
+   "verify": "cargo test -p adoq --test cli"
+  },
+  {
+   "id": "AC10",
+   "text": "Safety: PAT never appears in logs/telemetry/db; twin binds 127.0.0.1 only; a guard fails tests making non-loopback connections.",
+   "verify": "cargo test -p adoq --test safety"
+  },
+  {
+   "id": "AC11",
+   "text": "Telemetry: each scenario run appends valid JSON lines tick/retarget/rebase/batch/merge to $DATA_DIR/telemetry.jsonl with documented fields and no personal data.",
+   "verify": "cargo test -p adoq --test telemetry"
+  },
+  {
+   "id": "AC12",
+   "text": "Bench command's last stdout line is JSON with tick_p50_ms, rss_mb, builds_per_merged_pr; builds_per_merged_pr \u2264 0.3 on the 4-green-PR batch.",
+   "verify": "cargo run -q --release -p adoq -- bench | tail -1 | python3 -c 'import sys,json;d=json.loads(sys.stdin.read());assert d[\"builds_per_merged_pr\"]<=0.3 and \"tick_p50_ms\" in d and \"rss_mb\" in d'"
+  },
+  {
+   "id": "AC13",
+   "text": "Repo holds twins/ado/ README naming the Microsoft Learn pages followed and a LICENSE (MIT).",
+   "verify": "test -f twins/ado/README.md && grep -q 'learn.microsoft.com' twins/ado/README.md && test -f LICENSE"
+  }
+ ],
+ "architecture_decisions": [
+  {
+   "id": "AD1",
+   "decision": "Rust workspace: core engine (sync, no HTTP imports), adoq bin, twin-ado crate.",
+   "why": "Fast small always-on binary; ports make behaviour tests run in ms (Reflex)."
+  },
+  {
+   "id": "AD2",
+   "decision": "Shell out to system git for rebase/merge-tree/push.",
+   "why": "Rebase is not a REST call [X-005]; matches adopters' runner semantics."
+  },
+  {
+   "id": "AD3",
+   "decision": "Poll + reconcile (level-triggered), state in SQLite, derive stack graph each tick.",
+   "why": "Idempotent and restart-safe; no webhook infra needed; cached parent_id is never trusted."
+  },
+  {
+   "id": "AD4",
+   "decision": "ADO twin under twins/ado/ with real bare repos, REST 7.1 shapes, fault flags.",
+   "why": "No ADO org/credentials here; faithful to Learn pages [A-005]."
+  },
+  {
+   "id": "AD5",
+   "decision": "Queue builds run on temp branch queue/<n> via a Builds port; batch with bisection on failure.",
+   "why": "Mirrors GitHub merge_group; whether ADO binds builds to such refs is unproven [A-006]."
+  },
+  {
+   "id": "AD6",
+   "decision": "Fresh JSON telemetry lines and a bench subcommand.",
+   "why": "Mad lab: judged on numbers."
+  }
+ ],
+ "dependencies": [
+  "axum 0.8.9",
+  "rusqlite 0.43.0 (bundled)",
+  "ureq 3.5.2",
+  "serde",
+  "serde_json",
+  "clap",
+  "tokio",
+  "system git >= 2.38"
+ ],
+ "test_commands": [
+  "cargo test --workspace --locked"
+ ],
+ "environment": [
+  "Rust 1.100",
+  "git 2.43",
+  "127.0.0.1 only",
+  "ADOQ_PAT env (fake value in tests)",
+  "DATA_DIR for sqlite and telemetry"
+ ],
+ "data_constraints": [
+  "No work repos or corporate credentials on this box; fixture repos generated in tests",
+  "Telemetry has PR ids only, no names/emails"
+ ],
+ "unresolved_assumptions": [
+  "ADO retargeting feature is enabled in adopter orgs (default unverified)",
+  "Build validation/pipelines can run on non-PR queue refs, or be triggered via API",
+  "Bot identity can get contribute+force-push rights",
+  "wshm's queue does not already do batched ADO builds"
+ ],
+ "risk_owners": [
+  {
+   "risk": "Real-ADO behaviour differs from the twin",
+   "owner": "Manu (personal ADO org, roadmap F2)"
+  },
+  {
+   "risk": "Overlap with wshm/Pro-Sharp",
+   "owner": "architect/researcher (F1)"
+  }
+ ],
+ "rollback": "Delete the repo and DATA_DIR; the bot only pushes queue/* and stacked-PR branches, and completion can be reverted by git revert.",
+ "operational_owner": "Manu",
+ "assumption_tested": {
+  "kind": "feasibility",
+  "statement": "The auto-retarget + rebase + batched queue loop can be built correctly as a poll-based headless service on ADO's documented REST surface plus plain git.",
+  "how_tested": "AC3-AC8 run the whole loop against a docs-faithful twin; refuted if rebased stacks come out non-linear, a batch double-completes after restart, or batching needs more builds than serial (AC12 > 0.3)."
+ },
+ "untested_risk": {
+  "kind": "desirability",
+  "statement": "ADO-heavy teams want a self-hosted bot for stacking/queues and will grant it force-push and PR-update rights.",
+  "why_not_tested": "Demand evidence is weak [M] and cannot be gathered from this box; POC must not wait on interviews or an ADO org."
+ }
+}

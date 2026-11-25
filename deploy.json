@@ -1,0 +1,6 @@
+{
+  "build": "cargo build --release --locked -p twin-ado -p adoq",
+  "start": "PORT=$PORT DATA_DIR=$DATA_DIR target/release/twin-ado",
+  "health": "/",
+  "bench": "cargo run -q --release -p adoq -- bench"
+}

@@ -1,0 +1,93 @@
+{
+ "schema": "ilf.roadmap.v1",
+ "case_id": "C0008",
+ "rev": 2,
+ "project_slug": "ado-stack-queue",
+ "features": [
+  {
+   "id": "F1",
+   "title": "Read wshm's ADO queue and Pro-Sharp code; decide contribute vs build",
+   "why": "Avoid duplicating an existing queue [M-003]",
+   "effort": "S",
+   "depends_on": [],
+   "acceptance": [
+    "Written comparison with licence, coverage, gaps",
+    "Decision recorded in repo README"
+   ]
+  },
+  {
+   "id": "F2",
+   "title": "Real ADO adapter against a personal ADO org",
+   "why": "Settles retarget flag, bot permissions, rate limits the twin cannot [A-006]",
+   "effort": "M",
+   "depends_on": [],
+   "acceptance": [
+    "Smoke script runs the stack loop on a free ADO org",
+    "Twin fidelity diffs recorded as fixes"
+   ]
+  },
+  {
+   "id": "F3",
+   "title": "Speculative builds on queue refs via ADO pipelines API",
+   "why": "Core efficiency claim; unproven on real ADO",
+   "effort": "M",
+   "depends_on": [
+    "F2"
+   ],
+   "acceptance": [
+    "Queue ref build triggered and result read back on real ADO",
+    "Falls back to serial queue when not possible"
+   ]
+  },
+  {
+   "id": "F4",
+   "title": "Service hooks (webhook) receiver with polling fallback",
+   "why": "Lower latency and fewer API calls",
+   "effort": "S",
+   "depends_on": [
+    "F2"
+   ],
+   "acceptance": [
+    "Twin posts a service hook and tick runs within 1 s",
+    "Missed hooks recovered by poll"
+   ]
+  },
+  {
+   "id": "F5",
+   "title": "Packaging: Docker-free static binary release, config docs, MIT repo, README demo",
+   "why": "Open-source adoption experiment (stars/issues in 4 weeks)",
+   "effort": "S",
+   "depends_on": [],
+   "acceptance": [
+    "Release binary runs `adoq --help`",
+    "README quickstart works against the twin"
+   ]
+  },
+  {
+   "id": "F6",
+   "title": "Policy-aware mode: required-status check setup, bypass detection, reviewer-vote reset warnings",
+   "why": "Makes the queue gate trustworthy [X-003][X-004]",
+   "effort": "M",
+   "depends_on": [
+    "F2"
+   ],
+   "acceptance": [
+    "Warns when completer can bypass policies",
+    "Documents vote reset on force-push"
+   ]
+  },
+  {
+   "id": "F7",
+   "title": "Queue priority, per-PR batch opt-out, and pause/resume",
+   "why": "Maintainer control",
+   "effort": "S",
+   "depends_on": [
+    "F3"
+   ],
+   "acceptance": [
+    "Priority PR jumps FIFO",
+    "Paused queue makes no mutating calls"
+   ]
+  }
+ ]
+}
